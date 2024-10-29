@@ -27,7 +27,7 @@ void initializeGrid(char grid[GRID_SIZE][GRID_SIZE], char fillChar) {
 
 // Function to display the grid
 void displayGrid(const char grid[GRID_SIZE][GRID_SIZE]) {
-    printf(" A B C D E F G H I J\n");
+    printf("  A B C D E F G H I J\n");
     for (int i = 0; i < GRID_SIZE; i++) {
         printf("%2d ", i + 1);
         for (int j = 0; j < GRID_SIZE; j++) {
