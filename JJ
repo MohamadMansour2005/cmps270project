@@ -264,3 +264,172 @@ void executeSmokeScreen(Player *attacker) {
 void executeArtillery(Player *attacker, Player *defender) {
     // Functionality to implement artillery if needed
 }
+void fire(Player *attacker, Player *being_attacked) {
+    char coordinates[3];
+    printf("\nPlease enter coordinates of where you want to attack (e.g., A1): ");
+    scanf("%s", coordinates);
+    int row = coordinates[1] - '1'; // Convert input to grid indices
+    int col = coordinates[0] - 'A';
+
+    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
+        printf("Invalid coordinates! You lose your turn.\n");
+        return;
+    }
+
+    // Check if the target cell is empty, hit, or already targeted
+    if (being_attacked->cells[row][col] == '~') {
+        attacker->opponent_grid[row][col] = 'o'; // Mark as miss
+        printf("Miss!!\n");
+    } else if (being_attacked->cells[row][col] == '#') {
+        attacker->opponent_grid[row][col] = '*'; // Mark as hit
+        printf("Hit!!\n");
+        being_attacked->ships_left--; // Reduce the count of ships left
+        if (being_attacked->ships_left == 0) {
+            printf("%s has sunk a ship!\n", attacker->playerName);
+        }
+    } else {
+        printf("You have already targeted this location.\n");
+    }
+}
+void executeRadarSweep(Player *attacker, Player *defender) {
+    if (attacker->radar_sweeps_used >= MAX_RADAR_SWEEPS) {
+        printf("You have used all your radar sweeps.\n");
+        return;
+    }
+
+    char coordinates[3];
+    printf("Enter coordinates for radar sweep (e.g., A1): ");
+    scanf("%s", coordinates);
+    int row = coordinates[1] - '1'; // Convert input to grid indices
+    int col = coordinates[0] - 'A';
+
+    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
+        printf("Invalid coordinates for radar sweep.\n");
+        return;
+    }
+
+    printf("Radar sweep results:\n");
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            int scan_row = row + i;
+            int scan_col = col + j;
+            // Check bounds and report ships
+            if (scan_row >= 0 && scan_row < GRID_SIZE && scan_col >= 0 && scan_col < GRID_SIZE) {
+                if (defender->cells[scan_row][scan_col] == '#') {
+                    printf("Ship detected at %c%d\n", scan_col + 'A', scan_row + 1);
+                }
+            }
+        }
+    }
+
+    attacker->radar_sweeps_used++; // Mark radar sweep as used
+}
+void executeSmokeScreen(Player *attacker) {
+    if (attacker->smoke_screens_used >= MAX_SMOKE_SCREENS) {
+        printf("You have used all your smoke screens.\n");
+        return;
+    }
+
+    printf("Smoke screen deployed! Your ships are now harder to hit for one turn.\n");
+    attacker->smoke_screens_used++; // Mark smoke screen as used
+    // In a more complex implementation, you could add mechanics to protect ships for one turn.
+}
+void executeArtillery(Player *attacker, Player *defender) {
+    char coordinates[3];
+    printf("Enter coordinates for artillery strike (e.g., A1): ");
+    scanf("%s", coordinates);
+    int row = coordinates[1] - '1'; // Convert input to grid indices
+    int col = coordinates[0] - 'A';
+
+    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
+        printf("Invalid coordinates for artillery strike.\n");
+        return;
+    }
+
+    // Execute artillery strike
+    if (defender->cells[row][col] == '#') {
+        printf("Artillery strike successful! You hit a ship at %c%d!\n", col + 'A', row + 1);
+        defender->ships_left--; // Reduce the count of ships left
+    } else {
+        printf("Artillery strike missed!\n");
+    }
+}
+// TuberGo Ability Function
+void useTuberGo(Player *player) {
+    if (player->tubergo_available) {
+        printf("TuberGo activated! You can dodge the next attack.\n");
+        player->tubergo_available = 0; // Mark TuberGo as used
+    } else {
+        printf("TuberGo is not available. Use it wisely!\n");
+    }
+}
+
+// Main Game Loop
+int main() {
+    Player p1, p2;
+
+    // Initialize grids
+    initializeGrid(p1.cells, '~');
+    initializeGrid(p2.cells, '~');
+    initializeGrid(p1.opponent_grid, '~');
+    initializeGrid(p2.opponent_grid, '~');
+    
+    // Get player names
+    getPlayerNames(&p1, &p2);
+    
+    // Initialize TuberGo
+    p1.tubergo_available = 1; // TuberGo available for Player 1
+    p2.tubergo_available = 1; // TuberGo available for Player 2
+    
+    // Place ships for both players
+    placeShip(&p1);
+    placeShip(&p2);
+
+    // Game loop
+    while (p1.ships_left > 0 && p2.ships_left > 0) {
+        // Player 1's turn
+        printf("\n%s's turn:\n", p1.playerName);
+        
+        // Option to use TuberGo
+        char use_tubergo;
+        printf("Do you want to use TuberGo? (Y/N): ");
+        scanf(" %c", &use_tubergo);
+        if (use_tubergo == 'Y' || use_tubergo == 'y') {
+            useTuberGo(&p1);
+        }
+
+        executeFire(&p1, &p2);          // Fire at opponent
+        executeRadarSweep(&p1, &p2);    // Perform radar sweep
+        executeSmokeScreen(&p1);         // Deploy smoke screen
+        executeArtillery(&p1, &p2);      // Execute artillery strike
+        
+        // Check for victory after firing
+        if (p2.ships_left <= 0) {
+            printf("%s wins!\n", p1.playerName);
+            break;
+        }
+
+        // Player 2's turn
+        printf("\n%s's turn:\n", p2.playerName);
+        
+        // Option to use TuberGo
+        printf("Do you want to use TuberGo? (Y/N): ");
+        scanf(" %c", &use_tubergo);
+        if (use_tubergo == 'Y' || use_tubergo == 'y') {
+            useTuberGo(&p2);
+        }
+
+        executeFire(&p2, &p1);          // Fire at opponent
+        executeRadarSweep(&p2, &p1);    // Perform radar sweep
+        executeSmokeScreen(&p2);         // Deploy smoke screen
+        executeArtillery(&p2, &p1);      // Execute artillery strike
+        
+        // Check for victory after firing
+        if (p1.ships_left <= 0) {
+            printf("%s wins!\n", p2.playerName);
+            break;
+        }
+    }
+
+    return 0;
+}
