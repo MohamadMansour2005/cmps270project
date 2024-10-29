@@ -72,6 +72,7 @@ int main() {
 
     return 0; // Indicate successful completion
 }
+
 int placeShipHelper(struct Player *p, int num_of_cells_for_ship) { // Use pointer to Player
     char choice;
     printf("\nRemember your ship takes %d cells. Would you like to place your ship vertically (V) or horizontally (H)? ", num_of_cells_for_ship);
@@ -106,7 +107,9 @@ int placeShipHelper(struct Player *p, int num_of_cells_for_ship) { // Use pointe
             }
         }
     }
- if (choice == 'V') {
+
+
+    if (choice == 'V') {
         for (int i = 0; i < num_of_cells_for_ship; i++) {
             p->player_grid[row + i][col] = '#';
         }
@@ -141,3 +144,82 @@ int placeShip(struct Player *p){
     printf("\nLet's now place your destroyer!");
     int is_destroyer_placed = 0;
     while(is_destroyer_placed == 0){
+        is_destroyer_placed = placeShipHelper(p, 3);
+    }
+
+    printf("\nLet's now place your submarine!");
+    int is_submarine_placed = 0;
+    while(is_submarine_placed == 0){
+        is_submarine_placed = placeShipHelper(p, 2);
+    }
+
+    printGrid(*p);
+    return 0;
+}
+
+int fire(struct Player *attacker, struct Player *being_attacked){
+    char coordinates[2];
+    printf("\nPlease enter coordinates of where you want to attack. ");
+    scanf("%s", coordinates);
+    int row = coordinates[0] - '1';
+    int col = coordinates[1] - 'A';
+
+    if(being_attacked->player_grid[row][col] == '~'){
+        attacker->opponent_grid[row][col] == 'o';
+        printf("Miss!!");
+    }
+
+    if(being_attacked->player_grid[row][col] == '#'){
+        attacker->opponent_grid[row][col] == '*';
+        printf("Hit!!");
+    }
+
+    //someone write a function to check if a ship was down
+}
+
+int checkIfShipDown(struct Player * player ){  // someone help 
+  
+
+  
+}
+
+int main(){
+    struct Player p1;
+    struct Player p2;
+
+    printf("Please enter name of player one: ");
+    scanf("%s",&p1.name);
+    printf("Please enter the name of player two: ");
+    scanf("%s",&p2.name);
+
+    printf("please enter difficulty level: Easy (E) , Hard (H) ");
+    scanf("%c",&difficulty);
+
+
+    p1.ships_left = 4;
+    p2.ships_left = 4;
+
+
+    for(int i = 0; i < 10; i++){
+        for(int j = 0; j < 10; j++){
+            p1.player_grid[i][j] = '~';
+            p1.opponent_grid[i][j] = '~';
+            p2.player_grid[i][j] = '~';
+            p2.opponent_grid[i][j] = '~';
+        }
+    }
+
+    printGrid(p1);
+    placeShip(&p1);
+    printGrid(p2);
+    placeShip(&p2);
+
+    
+
+    while(p1.ships_left != 0 || p2.ships_left != 0){
+        printf("player one enter your command : ");
+        scanf("s",&p1.command);
+    }
+
+    return 0;
+}
