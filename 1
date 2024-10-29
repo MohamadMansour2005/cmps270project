@@ -1,0 +1,171 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#define GRID_SIZE 10
+#define EASY 1
+#define HARD 2
+
+// Struct to represent a player
+typedef struct {
+    char name[50];
+    char grid[GRID_SIZE][GRID_SIZE];
+    int difficulty;
+} Player;
+
+// Function prototypes
+void initializeGrid(char grid[GRID_SIZE][GRID_SIZE]);
+void displayGrid(const char grid[GRID_SIZE][GRID_SIZE]);
+void getPlayerNames(Player *p1, Player *p2);
+int getDifficultyLevel();
+void placeShip(Player *p, int shipSize);
+void clearScreen();
+Player *chooseStartingPlayer(Player *p1, Player *p2);
+
+int main() {
+    Player p1, p2;
+    srand(time(0)); // Initialize random seed for random selection
+
+    // Initialize player grids
+    initializeGrid(p1.grid);
+    initializeGrid(p2.grid);
+
+    // Get player names and difficulty level
+    getPlayerNames(&p1, &p2);
+    p1.difficulty = getDifficultyLevel();
+    p2.difficulty = p1.difficulty; // Both players share the same difficulty
+
+    // Randomly choose a starting player
+    Player *startingPlayer = chooseStartingPlayer(&p1, &p2);
+    printf("The starting player is: %s\n\n", startingPlayer->name);
+
+    // Clear screen to maintain secrecy after each player enters their ships
+    printf("Player %s, place your ships.\n", p1.name);
+    placeShip(&p1, 5); // Carrier
+    placeShip(&p1, 4); // Battleship
+    placeShip(&p1, 3); // Destroyer
+    placeShip(&p1, 2); // Submarine
+    clearScreen();
+
+    printf("Player %s, place your ships.\n", p2.name);
+    placeShip(&p2, 5); // Carrier
+    placeShip(&p2, 4); // Battleship
+    placeShip(&p2, 3); // Destroyer
+    placeShip(&p2, 2); // Submarine
+    clearScreen();
+
+    return 0;
+}
+
+// Function to initialize the grid with water '~'
+void initializeGrid(char grid[GRID_SIZE][GRID_SIZE]) {
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            grid[i][j] = '~';
+        }
+    }
+}
+
+// Function to display the grid
+void displayGrid(const char grid[GRID_SIZE][GRID_SIZE]) {
+    printf("   A B C D E F G H I J\n");
+    for (int i = 0; i < GRID_SIZE; i++) {
+        printf("%2d ", i + 1);
+        for (int j = 0; j < GRID_SIZE; j++) {
+            printf("%c ", grid[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+// Function to get player names
+void getPlayerNames(Player *p1, Player *p2) {
+    printf("Enter name for Player 1: ");
+    scanf("%s", p1->name);
+    printf("Enter name for Player 2: ");
+    scanf("%s", p2->name);
+}
+
+// Function to get the difficulty level
+int getDifficultyLevel() {
+    int difficulty;
+    printf("Select difficulty level (1 for Easy, 2 for Hard): ");
+    scanf("%d", &difficulty);
+    return (difficulty == EASY || difficulty == HARD) ? difficulty : EASY;
+}
+
+// Function to clear the screen (for most terminals)
+void clearScreen() {
+    printf("\033[H\033[J"); // ANSI escape code to clear screen
+}
+
+// Function to randomly choose the starting player
+Player *chooseStartingPlayer(Player *p1, Player *p2) {
+    return rand() % 2 == 0 ? p1 : p2;
+}
+
+// Function to place a ship on the grid
+void placeShip(Player *p, int shipSize) {
+    char orientation;
+    char startCell[3];
+    int row, col;
+
+    displayGrid(p->grid);
+    printf("%s, place your ship of size %d\n", p->name, shipSize);
+
+    while (1) {
+        printf("Enter starting position (e.g., B3) and orientation (H for horizontal, V for vertical): ");
+        scanf("%s %c", startCell, &orientation);
+        row = startCell[1] - '1';
+        col = startCell[0] - 'A';
+
+        if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
+            printf("Invalid starting position! Try again.\n");
+            continue;
+        }
+
+        int validPlacement = 1;
+        if (orientation == 'H') {
+            if (col + shipSize > GRID_SIZE) {
+                printf("Ship extends beyond the grid horizontally! Try again.\n");
+                continue;
+            }
+            for (int i = 0; i < shipSize; i++) {
+                if (p->grid[row][col + i] == '#') {
+                    printf("Ship overlaps with another! Try again.\n");
+                    validPlacement = 0;
+                    break;
+                }
+            }
+            if (validPlacement) {
+                for (int i = 0; i < shipSize; i++) {
+                    p->grid[row][col + i] = '#';
+                }
+                break;
+            }
+        } else if (orientation == 'V') {
+            if (row + shipSize > GRID_SIZE) {
+                printf("Ship extends beyond the grid vertically! Try again.\n");
+                continue;
+            }
+            for (int i = 0; i < shipSize; i++) {
+                if (p->grid[row + i][col] == '#') {
+                    printf("Ship overlaps with another! Try again.\n");
+                    validPlacement = 0;
+                    break;
+                }
+            }
+            if (validPlacement) {
+                for (int i = 0; i < shipSize; i++) {
+                    p->grid[row + i][col] = '#';
+                }
+                break;
+            }
+        } else {
+            printf("Invalid orientation! Try again.\n");
+        }
+    }
+
+    displayGrid(p->grid);
+}
