@@ -1,0 +1,74 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define GRID_SIZE 10 // Define the size of the grid
+
+// Struct to represent a player
+typedef struct {
+    char playerName[50];
+    char cells[GRID_SIZE][GRID_SIZE]; // Grid for player
+} Player;
+
+// Function to initialize the grid with a specified character
+void initializeGrid(char grid[GRID_SIZE][GRID_SIZE], char fillChar) {
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            grid[i][j] = fillChar; // Fill each cell with water
+        }
+    }
+}
+
+// Function to display the grid
+void displayGrid(const char grid[GRID_SIZE][GRID_SIZE]) {
+    // Print column headers
+    printf("  A B C D E F G H I J\n");
+    
+    // Print each row with its corresponding number
+    for (int i = 0; i < GRID_SIZE; i++) {
+        printf("%2d ", i + 1); // Row number with space for alignment
+        for (int j = 0; j < GRID_SIZE; j++) {
+            printf("%c ", grid[i][j]); // Print function for the grid
+        }
+        printf("\n"); // New line after each row
+    }
+}
+
+// Function to get player names
+void getPlayerNames(Player *player1, Player *player2) {
+    printf("Enter name for Player 1: ");
+    scanf("%s", player1->playerName);
+    printf("Enter name for Player 2: ");
+    scanf("%s", player2->playerName);
+}
+
+// Function to get difficulty level
+int getDifficultyLevel() {
+    int difficulty;
+    printf("Select difficulty level (1 for Easy, 2 for Hard): ");
+    scanf("%d", &difficulty);
+    return difficulty;
+}
+
+int main() {
+    Player player1, player2; // Create instances of Player structs
+    char fillCharacter = '∼'; // Define the character to fill the grid with
+
+    // Initialize both players' grids with water
+    initializeGrid(player1.cells, fillCharacter);
+    initializeGrid(player2.cells, fillCharacter);
+
+    // Get player names
+    getPlayerNames(&player1, &player2);
+
+    // Get difficulty level
+    int difficulty = getDifficultyLevel();
+
+    // Display both grids
+    printf("\n%s's grid:\n", player1.playerName);
+    displayGrid(player1.cells);
+    
+    printf("\n%s's grid:\n", player2.playerName);
+    displayGrid(player2.cells);
+
+    return 0; // Indicate successful completion
+}
