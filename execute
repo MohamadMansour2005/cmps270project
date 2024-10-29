@@ -1,0 +1,59 @@
+#include <stdio.h>
+
+// Assuming Player struct and other game functions have already been defined above this code.
+
+void executeFire(Player *attacker, Player *defender) {
+    printf("Executing fire command...\n");
+    fire(attacker, defender); // Calls the fire function
+    printf("Fire command complete.\n\n");
+}
+
+void executeArtillery(Player *attacker, Player *defender) {
+    printf("Executing artillery command...\n");
+    artillery(attacker, defender); // Calls the artillery function
+    printf("Artillery command complete.\n\n");
+}
+
+void executeRadarSweep(Player *attacker, Player *defender) {
+    printf("Executing radar sweep command...\n");
+    radarSweep(attacker, defender); // Calls the radar sweep function
+    printf("Radar sweep command complete.\n\n");
+}
+
+void executeSmokeScreen(Player *attacker) {
+    printf("Executing smoke screen command...\n");
+    smokeScreen(attacker); // Calls the smoke screen function
+    printf("Smoke screen command complete.\n\n");
+}
+
+void executeTorpedo(Player *attacker, Player *defender) {
+    printf("Executing torpedo command...\n");
+    torpedo(attacker, defender); // Calls the torpedo function
+    printf("Torpedo command complete.\n\n");
+}
+// Example game loop inside main function
+while (p1.ships_left > 0 && p2.ships_left > 0) {
+    // Player 1's turn
+    printf("\n%s's turn:\n", p1.playerName);
+    executeFire(&p1, &p2);
+    executeRadarSweep(&p1, &p2);
+    executeSmokeScreen(&p1);
+    executeArtillery(&p1, &p2);
+
+    if (p2.ships_left <= 0) {
+        printf("%s wins!\n", p1.playerName);
+        break;
+    }
+
+    // Player 2's turn
+    printf("\n%s's turn:\n", p2.playerName);
+    executeFire(&p2, &p1);
+    executeRadarSweep(&p2, &p1);
+    executeSmokeScreen(&p2);
+    executeArtillery(&p2, &p1);
+
+    if (p1.ships_left <= 0) {
+        printf("%s wins!\n", p2.playerName);
+        break;
+    }
+}
