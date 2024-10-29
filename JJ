@@ -1,3 +1,35 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define GRID_SIZE 10 // Define the size of the grid
+#define MAX_RADAR_SWEEPS 3 // Maximum radar sweeps allowed
+#define MAX_SMOKE_SCREENS 3 // Maximum smoke screens allowed
+
+// Struct to represent a player
+typedef struct {
+    char playerName[50];
+    char cells[GRID_SIZE][GRID_SIZE]; // Grid for player
+    char opponent_grid[GRID_SIZE][GRID_SIZE]; // Opponent's grid
+    int ships_left; // Number of ships left
+    int radar_sweeps_used; // Radar sweeps used
+    int smoke_screens_used; // Smoke screens used
+} Player;
+
+// Function prototypes
+void initializeGrid(char grid[GRID_SIZE][GRID_SIZE], char fillChar);
+void displayGrid(const char grid[GRID_SIZE][GRID_SIZE]);
+void getPlayerNames(Player *player1, Player *player2);
+int getDifficultyLevel();
+void printGrid(Player *p);
+int placeShipHelper(Player *p, int num_of_cells_for_ship);
+void placeShip(Player *p);
+void fire(Player *attacker, Player *being_attacked);
+void executeFire(Player *attacker, Player *defender);
+void executeRadarSweep(Player *attacker, Player *defender);
+void executeSmokeScreen(Player *attacker);
+void executeArtillery(Player *attacker, Player *defender);
+
 // Main function
 int main() {
     Player p1, p2;
@@ -59,24 +91,7 @@ int main() {
     }
 
     return 0; // Indicate successful completion
-} 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define GRID_SIZE 10 // Define the size of the grid
-#define MAX_RADAR_SWEEPS 3 // Maximum radar sweeps allowed
-#define MAX_SMOKE_SCREENS 3 // Maximum smoke screens allowed
-
-// Struct to  represent a player
-typedef struct {
-    char playerName[50];
-    char cells[GRID_SIZE][GRID_SIZE]; // Grid for player
-    char opponent_grid[GRID_SIZE][GRID_SIZE]; // Opponent's grid
-    int ships_left; // Number of ships left
-    int radar_sweeps_used; // Radar sweeps used
-    int smoke_screens_used; // Smoke screens used
-} Player;
+}
 
 // Function to initialize the grid with a specified character
 void initializeGrid(char grid[GRID_SIZE][GRID_SIZE], char fillChar) {
@@ -132,13 +147,18 @@ int placeShipHelper(Player *p, int num_of_cells_for_ship) {
     int row = cell[1] - '1'; // conversion from ASCII code
     int col = cell[0] - 'A';
 
+    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
+        printf("Invalid cell!\n");
+        return 0;
+    }
+
     if (choice == 'V') {
-        if (row + num_of_cells_for_ship > 9) {
+        if (row + num_of_cells_for_ship > GRID_SIZE) {
             printf("Ship cannot fit!\n");
             return 0;
         } else {
             for (int i = 0; i < num_of_cells_for_ship; i++) {
-                if(p->cells[row + i][col] == '#'){
+                if (p->cells[row + i][col] == '#') {
                     printf("A ship already exists in one of these cells!\n");
                     return 0;
                 }
@@ -148,12 +168,12 @@ int placeShipHelper(Player *p, int num_of_cells_for_ship) {
             p->cells[row + i][col] = '#';
         }
     } else if (choice == 'H') {
-        if (col + num_of_cells_for_ship > 9) {
+        if (col + num_of_cells_for_ship > GRID_SIZE) {
             printf("Ship cannot fit!\n");
             return 0;
         } else {
             for (int i = 0; i < num_of_cells_for_ship; i++) {
-                if(p->cells[row][col + i] == '#'){
+                if (p->cells[row][col + i] == '#') {
                     printf("A ship already exists in one of these cells!\n");
                     return 0;
                 }
@@ -171,29 +191,29 @@ int placeShipHelper(Player *p, int num_of_cells_for_ship) {
 }
 
 // Function to place ships for a player
-void placeShip(Player *p){
+void placeShip(Player *p) {
     printf("Let's start filling the ships! %s\n", p->playerName);
 
     int is_carrier_placed = 0;
-    while(is_carrier_placed == 0){
+    while (is_carrier_placed == 0) {
         is_carrier_placed = placeShipHelper(p, 5);
     }
 
     printf("\nLet's now place your battleship!\n");
     int is_battleship_placed = 0;
-    while(is_battleship_placed == 0){
+    while (is_battleship_placed == 0) {
         is_battleship_placed = placeShipHelper(p, 4);
     }
 
     printf("\nLet's now place your destroyer!\n");
     int is_destroyer_placed = 0;
-    while(is_destroyer_placed == 0){
+    while (is_destroyer_placed == 0) {
         is_destroyer_placed = placeShipHelper(p, 3);
     }
 
     printf("\nLet's now place your submarine!\n");
     int is_submarine_placed = 0;
-    while(is_submarine_placed == 0){
+    while (is_submarine_placed == 0) {
         is_submarine_placed = placeShipHelper(p, 2);
     }
 
@@ -229,4 +249,18 @@ void fire(Player *attacker, Player *being_attacked) {
 }
 
 // Execute functions for each move
-void executeFire(Player *attacker, Player *defender)
+void executeFire(Player *attacker, Player *defender) {
+    fire(attacker, defender);
+}
+
+void executeRadarSweep(Player *attacker, Player *defender) {
+    // Functionality to implement radar sweeps if needed
+}
+
+void executeSmokeScreen(Player *attacker) {
+    // Functionality to implement smoke screens if needed
+}
+
+void executeArtillery(Player *attacker, Player *defender) {
+    // Functionality to implement artillery if needed
+}
