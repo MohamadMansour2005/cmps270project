@@ -72,3 +72,37 @@ int main() {
 
     return 0; // Indicate successful completion
 }
+int placeShipHelper(struct Player *p, int num_of_cells_for_ship) { // Use pointer to Player
+    char choice;
+    printf("\nRemember your ship takes %d cells. Would you like to place your ship vertically (V) or horizontally (H)? ", num_of_cells_for_ship);
+    scanf(" %c", &choice);
+    printf("Please enter which cell you would like your ship to begin (e.g., A1): ");
+    char cell[3];
+    scanf("%s", cell);
+
+    int row = cell[1] - '1'; // conversion from ASCII code
+    int col = cell[0] - 'A';
+
+    if (choice == 'V') {
+        if (row + num_of_cells_for_ship > 9) {
+            printf("Ship cannot fit!\n");
+        } else {
+            for (int i = 0; i < num_of_cells_for_ship; i++) {
+                if(p->player_grid[row + i][col] == '#'){
+                    printf("A ship already exists in one of these cells!");
+                    return 0;
+                }
+            }
+        }
+    } else if (choice == 'H') {
+        if (col + num_of_cells_for_ship > 9) {
+            printf("Ship cannot fit!\n");
+        } else {
+            for (int i = 0; i < num_of_cells_for_ship; i++) {
+                if(p->player_grid[row][col +i] == '#'){
+                    printf("A ship already exists in one of these cells!");
+                    return 0;
+                }
+            }
+        }
+    }
