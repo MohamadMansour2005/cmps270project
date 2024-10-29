@@ -7,6 +7,8 @@
 typedef struct {
     char playerName[50];
     char cells[GRID_SIZE][GRID_SIZE]; // Grid for player
+    char opponent_grid[GRID_SIZE][GRID_SIZE]; // Opponent's grid
+    int ships_left; // Number of ships left
 } Player;
 
 // Function to initialize the grid with a specified character
@@ -49,31 +51,11 @@ int getDifficultyLevel() {
     return difficulty;
 }
 
-int main() {
-    Player player1, player2; // Create instances of Player structs
-    char fillCharacter = '∼'; // Define the character to fill the grid with
-
-    // Initialize both players' grids with water
-    initializeGrid(player1.cells, fillCharacter);
-    initializeGrid(player2.cells, fillCharacter);
-
-    // Get player names
-    getPlayerNames(&player1, &player2);
-
-    // Get difficulty level
-    int difficulty = getDifficultyLevel();
-
-    // Display both grids
-    printf("\n%s's grid:\n", player1.playerName);
-    displayGrid(player1.cells);
-    
-    printf("\n%s's grid:\n", player2.playerName);
-    displayGrid(player2.cells);
-
-    return 0; // Indicate successful completion
+void printGrid(Player *p) {
+    displayGrid(p->cells);
 }
 
-int placeShipHelper(struct Player *p, int num_of_cells_for_ship) { // Use pointer to Player
+int placeShipHelper(Player *p, int num_of_cells_for_ship) {
     char choice;
     printf("\nRemember your ship takes %d cells. Would you like to place your ship vertically (V) or horizontally (H)? ", num_of_cells_for_ship);
     scanf(" %c", &choice);
@@ -87,139 +69,136 @@ int placeShipHelper(struct Player *p, int num_of_cells_for_ship) { // Use pointe
     if (choice == 'V') {
         if (row + num_of_cells_for_ship > 9) {
             printf("Ship cannot fit!\n");
+            return 0;
         } else {
             for (int i = 0; i < num_of_cells_for_ship; i++) {
-                if(p->player_grid[row + i][col] == '#'){
-                    printf("A ship already exists in one of these cells!");
+                if(p->cells[row + i][col] == '#'){
+                    printf("A ship already exists in one of these cells!\n");
                     return 0;
                 }
             }
+        }
+        for (int i = 0; i < num_of_cells_for_ship; i++) {
+            p->cells[row + i][col] = '#';
         }
     } else if (choice == 'H') {
         if (col + num_of_cells_for_ship > 9) {
             printf("Ship cannot fit!\n");
+            return 0;
         } else {
             for (int i = 0; i < num_of_cells_for_ship; i++) {
-                if(p->player_grid[row][col +i] == '#'){
-                    printf("A ship already exists in one of these cells!");
+                if(p->cells[row][col + i] == '#'){
+                    printf("A ship already exists in one of these cells!\n");
                     return 0;
                 }
             }
         }
-    }
-
-
-    if (choice == 'V') {
         for (int i = 0; i < num_of_cells_for_ship; i++) {
-            p->player_grid[row + i][col] = '#';
+            p->cells[row][col + i] = '#';
         }
-        printGrid(*p);
-        return 1;
+    } else {
+        printf("Invalid choice!\n");
+        return 0;
     }
-    else if (choice == 'H') {
-        for (int i = 0; i < num_of_cells_for_ship; i++) {
-            p->player_grid[row][col + i] = '#';
-        }
-        printGrid(*p);
-        return 1;
-    }
-
-    return 0; // Return 0 if placement was unsuccessful
+    printGrid(p);
+    return 1;
 }
 
-int placeShip(struct Player *p){
-    printf("Let's start filling the ships! %s\nLet's start with placing a carrier.\n", p->name);
+void placeShip(Player *p){
+    printf("Let's start filling the ships! %s\n", p->playerName);
 
     int is_carrier_placed = 0;
     while(is_carrier_placed == 0){
         is_carrier_placed = placeShipHelper(p, 5);
     }
 
-    printf("\nLet's now place your battleship!");
+    printf("\nLet's now place your battleship!\n");
     int is_battleship_placed = 0;
     while(is_battleship_placed == 0){
         is_battleship_placed = placeShipHelper(p, 4);
     }
 
-    printf("\nLet's now place your destroyer!");
+    printf("\nLet's now place your destroyer!\n");
     int is_destroyer_placed = 0;
     while(is_destroyer_placed == 0){
         is_destroyer_placed = placeShipHelper(p, 3);
     }
 
-    printf("\nLet's now place your submarine!");
+    printf("\nLet's now place your submarine!\n");
     int is_submarine_placed = 0;
     while(is_submarine_placed == 0){
         is_submarine_placed = placeShipHelper(p, 2);
     }
 
-    printGrid(*p);
-    return 0;
+    printGrid(p);
 }
 
-int fire(struct Player *attacker, struct Player *being_attacked){
-    char coordinates[2];
-    printf("\nPlease enter coordinates of where you want to attack. ");
+void fire(Player *attacker, Player *being_attacked) {
+    char coordinates[3];
+    printf("\nPlease enter coordinates of where you want to attack (e.g., A1): ");
     scanf("%s", coordinates);
-    int row = coordinates[0] - '1';
-    int col = coordinates[1] - 'A';
+    int row = coordinates[1] - '1';
+    int col = coordinates[0] - 'A';
 
-    if(being_attacked->player_grid[row][col] == '~'){
-        attacker->opponent_grid[row][col] == 'o';
-        printf("Miss!!");
+    if (being_attacked->cells[row][col] == '~') {
+        attacker->opponent_grid[row][col] = 'o';
+        printf("Miss!!\n");
+    } else if (being_attacked->cells[row][col] == '#') {
+        attacker->opponent_grid[row][col] = '*';
+        printf("Hit!!\n");
+        being_attacked->ships_left--; // Reduce the count of ships left
+    } else {
+        printf("You have already targeted this location.\n");
     }
-
-    if(being_attacked->player_grid[row][col] == '#'){
-        attacker->opponent_grid[row][col] == '*';
-        printf("Hit!!");
-    }
-
-    //someone write a function to check if a ship was down
 }
 
-int checkIfShipDown(struct Player * player ){  // someone help 
-  
+int main() {
+    Player p1, p2;
 
-  
-}
+    // Initialize both players' grids with water
+    char fillCharacter = '~'; // Define the character to fill the grid with
+    initializeGrid(p1.cells, fillCharacter);
+    initializeGrid(p2.cells, fillCharacter);
+    initializeGrid(p1.opponent_grid, fillCharacter);
+    initializeGrid(p2.opponent_grid, fillCharacter);
 
-int main(){
-    struct Player p1;
-    struct Player p2;
+    // Get player names
+    getPlayerNames(&p1, &p2);
 
-    printf("Please enter name of player one: ");
-    scanf("%s",&p1.name);
-    printf("Please enter the name of player two: ");
-    scanf("%s",&p2.name);
+    // Get difficulty level
+    int difficulty = getDifficultyLevel();
 
-    printf("please enter difficulty level: Easy (E) , Hard (H) ");
-    scanf("%c",&difficulty);
-
-
+    // Set initial ships left
     p1.ships_left = 4;
     p2.ships_left = 4;
 
+    // Display both grids
+    printf("\n%s's grid:\n", p1.playerName);
+    displayGrid(p1.cells);
+    
+    printf("\n%s's grid:\n", p2.playerName);
+    displayGrid(p2.cells);
 
-    for(int i = 0; i < 10; i++){
-        for(int j = 0; j < 10; j++){
-            p1.player_grid[i][j] = '~';
-            p1.opponent_grid[i][j] = '~';
-            p2.player_grid[i][j] = '~';
-            p2.opponent_grid[i][j] = '~';
+    // Place ships for both players
+    placeShip(&p1);
+    placeShip(&p2);
+
+    // Game loop
+    while (p1.ships_left > 0 && p2.ships_left > 0) {
+        printf("\n%s's turn:\n", p1.playerName);
+        fire(&p1, &p2);
+        if (p2.ships_left <= 0) {
+            printf("%s wins!\n", p1.playerName);
+            break;
+        }
+
+        printf("\n%s's turn:\n", p2.playerName);
+        fire(&p2, &p1);
+        if (p1.ships_left <= 0) {
+            printf("%s wins!\n", p2.playerName);
+            break;
         }
     }
 
-    printGrid(p1);
-    placeShip(&p1);
-    printGrid(p2);
-    placeShip(&p2);
-
-    
-
-    while(p1.ships_left != 0 || p2.ships_left != 0){
-        printf("player one enter your command : ");
-        scanf("s",&p1.command);
-    }
-
-    return 0;
+    return 0; // Indicate successful completion
 }
