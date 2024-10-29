@@ -6,7 +6,7 @@
 #define MAX_RADAR_SWEEPS 3 // Maximum radar sweeps allowed
 #define MAX_SMOKE_SCREENS 3 // Maximum smoke screens allowed
 
-// Struct to represent a player
+// Struct to  represent a player
 typedef struct {
     char playerName[50];
     char cells[GRID_SIZE][GRID_SIZE]; // Grid for player
