@@ -1,4 +1,65 @@
-#include <stdio.h>
+// Main function
+int main() {
+    Player p1, p2;
+
+    // Initialize both players' grids with water
+    char fillCharacter = '~'; // Define the character to fill the grid with
+    initializeGrid(p1.cells, fillCharacter);
+    initializeGrid(p2.cells, fillCharacter);
+    initializeGrid(p1.opponent_grid, fillCharacter);
+    initializeGrid(p2.opponent_grid, fillCharacter);
+    p1.radar_sweeps_used = 0;
+    p1.smoke_screens_used = 0;
+    p2.radar_sweeps_used = 0;
+    p2.smoke_screens_used = 0;
+
+    // Get player names
+    getPlayerNames(&p1, &p2);
+
+    // Get difficulty level
+    int difficulty = getDifficultyLevel();
+
+    // Set initial ships left
+    p1.ships_left = 4; // Assuming four ships for each player
+    p2.ships_left = 4;
+
+    // Place ships for both players
+    placeShip(&p1);
+    placeShip(&p2);
+
+    // Game loop
+    while (p1.ships_left > 0 && p2.ships_left > 0) {
+        // Player 1's turn
+        printf("\n%s's turn:\n", p1.playerName);
+        fire(&p1, &p2);
+        
+        // Check for victory after firing
+        if (p2.ships_left <= 0) {
+            printf("%s wins!\n", p1.playerName);
+            break;
+        }
+
+        radarSweep(&p1, &p2);
+        smokeScreen(&p1);
+        artillery(&p1, &p2);
+        
+        // Player 2's turn
+        printf("\n%s's turn:\n", p2.playerName);
+        fire(&p2, &p1);
+        
+        // Check for victory after firing
+        if (p1.ships_left <= 0) {
+            printf("%s wins!\n", p2.playerName);
+            break;
+        }
+
+        radarSweep(&p2, &p1);
+        smokeScreen(&p2);
+        artillery(&p2, &p1);
+    }
+
+    return 0; // Indicate successful completion
+} #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -27,7 +88,7 @@ void initializeGrid(char grid[GRID_SIZE][GRID_SIZE], char fillChar) {
 
 // Function to display the grid
 void displayGrid(const char grid[GRID_SIZE][GRID_SIZE]) {
-    printf("     A   B   C   D   E   F   G   H   I   J\n");
+    printf(" A B C D E F G H I J\n");
     for (int i = 0; i < GRID_SIZE; i++) {
         printf("%2d ", i + 1);
         for (int j = 0; j < GRID_SIZE; j++) {

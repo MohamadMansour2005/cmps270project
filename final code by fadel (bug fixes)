@@ -1,0 +1,502 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#define GRID_SIZE 10
+#define MAX_RADAR_SWEEPS 3
+#define MAX_SMOKE_SCREENS 4
+
+// Struct to represent a player
+typedef struct {
+    char name[50];
+    char grid[GRID_SIZE][GRID_SIZE];
+    char visibleGrid[GRID_SIZE][GRID_SIZE];
+    int radarSweepsUsed;
+    int smokeScreensUsed;
+    int shipsSunk;
+    int artilleryUnlocked;
+    int torpedoUnlocked;
+    char difficulty[10];
+} Player;
+
+// Function prototypes
+void initializeGrid(char grid[GRID_SIZE][GRID_SIZE]);
+void displayGrid(const char grid[GRID_SIZE][GRID_SIZE], int displayMisses);
+void getPlayerNames(Player *p1, Player *p2);
+void placeShip(Player *p,int shipSize);
+void clearScreen();
+Player *chooseStartingPlayer(Player *p1, Player *p2);
+void takeTurn(Player *currentPlayer, Player *opponent);
+int checkVictory(Player *p);
+void radarSweep(Player *currentPlayer, Player *opponent, char coord[]);
+void smokeScreen(Player *currentPlayer, char coord[]);
+void artillery(Player *currentPlayer, Player *opponent, char coord[]);
+void torpedo(Player *currentPlayer, Player *opponent, char coord[]);
+void updateVisibleGrid(Player * currentPlayer,Player *opponent);
+void processFire(Player *currentPlayer, Player *opponent, char coord[]);
+void displayEndGameMessage(Player *winner);
+void setupPlayerShips(Player *player);
+int checkIfShipSunk(Player *player, int row , int col);
+
+int main() {
+    Player p1, p2;
+    srand(time(0));
+
+   
+    initializeGrid(p1.grid);
+    initializeGrid(p2.grid);
+    initializeGrid(p1.visibleGrid);
+    initializeGrid(p2.visibleGrid);
+
+    
+    p1.radarSweepsUsed = 0;
+    p1.smokeScreensUsed = 0;
+    p1.shipsSunk = 0;
+    p1.artilleryUnlocked = 0;
+    p1.torpedoUnlocked = 0;
+
+    p2.radarSweepsUsed = 0;
+    p2.smokeScreensUsed = 0;
+    p2.shipsSunk = 0;
+    p2.artilleryUnlocked = 0;
+    p2.torpedoUnlocked = 0;
+
+    
+    getPlayerNames(&p1, &p2);
+
+   
+    printf("Choose difficulty for %s (Easy or Hard): ", p1.name);
+    scanf("%s", p1.difficulty);
+    printf("Choose difficulty for %s (Easy or Hard): ", p2.name);
+    scanf("%s", p2.difficulty);
+
+   
+    Player *currentPlayer = chooseStartingPlayer(&p1, &p2);
+    Player *opponent = (currentPlayer == &p1) ? &p2 : &p1;
+    printf("The starting player is: %s\n\n", currentPlayer->name);
+
+    // Players place their ships
+    setupPlayerShips(&p1);
+    setupPlayerShips(&p2);
+
+    // Game loop
+    while (1) {
+        takeTurn(currentPlayer, opponent);
+        if (checkVictory(opponent)) {
+            displayEndGameMessage(currentPlayer);
+            break;
+        }
+
+        // Switch players
+        Player *temp = currentPlayer;
+        currentPlayer = opponent;
+        opponent = temp;
+    }
+
+    return 0;
+}
+// Function to set up ships for a player with varied sizes
+void setupPlayerShips(Player *player) {
+    int shipSizes[] = {5, 4, 3, 2};  // Carrier, Battleship, Destroyer, Submarine
+    int numShips = sizeof(shipSizes) / sizeof(shipSizes[0]);
+
+    printf("%s, place your ships.\n", player->name);
+    for (int i = 0; i < numShips; i++) {
+        placeShip(player, shipSizes[i]);
+    }
+    clearScreen();
+}
+
+
+// Function to initialize the grid with water '~'
+void initializeGrid(char grid[GRID_SIZE][GRID_SIZE]) {
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            grid[i][j] = '~'; // Water
+        }
+    }
+}
+
+// Function to display the grid
+void displayGrid(const char grid[GRID_SIZE][GRID_SIZE], int displayMisses) {
+    printf("   A B C D E F G H I J\n");
+    for (int i = 0; i < GRID_SIZE; i++) {
+        printf("%2d ", i + 1);
+        for (int j = 0; j < GRID_SIZE; j++) {
+            if (displayMisses || grid[i][j] == '#' || grid[i][j] == '*' || grid[i][j] == 'S') {
+                printf("%c ", grid[i][j]);
+            } else {
+                printf("~ "); // Hide misses in Hard difficulty
+            }
+        }
+        printf("\n");
+    }
+}
+
+// Function to get player names
+void getPlayerNames(Player *p1, Player *p2) {
+    printf("Enter name for Player 1: ");
+    scanf("%s", p1->name);
+    printf("Enter name for Player 2: ");
+    scanf("%s", p2->name);
+}
+
+// Function to clear the screen 
+void clearScreen() {
+    printf("\033[H\033[J"); // ANSI escape code to clear screen
+}
+
+// Function to randomly choose the starting player
+Player *chooseStartingPlayer(Player *p1, Player *p2) {
+    return rand() % 2 == 0 ? p1 : p2;
+}
+
+
+// Function to place a ship of a specified size on the grid
+void placeShip(Player *p, int shipSize) {
+    char orientation;
+    char startCell[3];
+    int row, col;
+
+    displayGrid(p->grid, 1); 
+    printf("%s, place your ship of size %d (example: B3 H):\n", p->name, shipSize);
+    
+    while (1) {
+        printf("Enter starting position (e.g., B3) and orientation (H for horizontal, V for vertical): ");
+        scanf("%s %c", startCell, &orientation);
+        row = startCell[1] - '1';
+        col = startCell[0] - 'A';
+
+       
+        if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
+            printf("Invalid starting position! Try again.\n");
+            continue;
+        }
+
+        int validPlacement = 1;
+
+      
+        if (orientation == 'H') {
+            if (col + shipSize > GRID_SIZE) {
+                printf("Ship extends beyond the grid horizontally! Try again.\n");
+                continue;
+            }
+            for (int i = 0; i < shipSize; i++) {
+                if (p->grid[row][col + i] == '#') {
+                    printf("Ship overlaps with another! Try again.\n");
+                    validPlacement = 0;
+                    break;
+                }
+            }
+            if (validPlacement) {
+                for (int i = 0; i < shipSize; i++) {
+                    p->grid[row][col + i] = '#'; 
+                }
+                break;
+            }
+        } 
+        
+        else if (orientation == 'V') {
+            if (row + shipSize > GRID_SIZE) {
+                printf("Ship extends beyond the grid vertically! Try again.\n");
+                continue;
+            }
+            for (int i = 0; i < shipSize; i++) {
+                if (p->grid[row + i][col] == '#') {
+                    printf("Ship overlaps with another! Try again.\n");
+                    validPlacement = 0;
+                    break;
+                }
+            }
+            if (validPlacement) {
+                for (int i = 0; i < shipSize; i++) {
+                    p->grid[row + i][col] = '#'; 
+                }
+                break;
+            }
+        } else {
+            printf("Invalid orientation! Try again.\n");
+        }
+    }
+
+    displayGrid(p->grid, 1); // Show grid after placing ship
+}
+
+
+// Function to process each player's turn
+// Function to process each player's turn
+void takeTurn(Player *currentPlayer, Player *opponent) {
+    char command[20];
+    char coord[3];
+
+    printf("\n%s's turn\n", currentPlayer->name);
+    updateVisibleGrid(currentPlayer, opponent); // Update current player's visible grid
+
+    int displayMisses = (strcmp(currentPlayer->difficulty, "Easy") == 0);
+    displayGrid(opponent->visibleGrid, displayMisses); // Display opponent's visible grid
+
+    printf("Available moves:\n");
+    printf("1. Fire [coordinate]\n");
+    printf("2. Radar [top-left coordinate]\n");
+    printf("3. Smoke [top-left coordinate]\n");
+    printf("4. Artillery [top-left coordinate] (unlocked if you sink a ship)\n");
+    printf("5. Torpedo [row or column letter] (unlocked after sinking the 3rd ship)\n");
+
+    printf("%s, enter your command: ", currentPlayer->name);
+    scanf("%s %s", command, coord);
+
+    if (strcmp(command, "Fire") == 0) {
+        processFire(currentPlayer, opponent, coord);
+    } else if (strcmp(command, "Radar") == 0) {
+        if (currentPlayer->radarSweepsUsed < MAX_RADAR_SWEEPS) {
+            radarSweep(currentPlayer, opponent, coord);
+            currentPlayer->radarSweepsUsed++;
+        } else {
+            printf("Maximum radar sweeps used! You lose your turn.\n");
+        }
+    } else if (strcmp(command, "Smoke") == 0) {
+        smokeScreen(currentPlayer, coord);
+    } else if (strcmp(command, "Artillery") == 0) {
+        if (currentPlayer->artilleryUnlocked) {
+            artillery(currentPlayer, opponent, coord);
+            currentPlayer->artilleryUnlocked = 0; 
+        } else {
+            printf("Artillery not unlocked yet!\n");
+        }
+    } else if (strcmp(command, "Torpedo") == 0) {
+        if (currentPlayer->torpedoUnlocked) {
+            torpedo(currentPlayer, opponent, coord);
+        } else {
+            printf("Torpedo not unlocked yet!\n");
+        }
+    } else {
+        printf("Invalid command! You lose your turn.\n");
+    }
+}
+
+// Function to check if a player has won
+int checkVictory(Player *p) {
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            if (p->grid[i][j] == '#') {
+                return 0; 
+            }
+        }
+    }
+    return 1; 
+}
+// Function to check if ship has sunk
+int checkIfShipSunk(Player *player, int row, int col) {
+    int i = row;
+    while (i >= 0 && player->grid[i][col] == '#') {
+        i--;
+    }
+    i++;
+    while (i < 10 && (player->grid[i][col] == '*' || player->grid[i][col] == '#')) {
+        if (player->grid[i][col] == '#') {
+            return 0;
+        }
+        i++;
+    }
+
+    int j = col;
+    while (j >= 0 && player->grid[row][j] == '#') {
+        j--;
+    }
+    j++;
+    while (j < 10 && (player->grid[row][j] == '*' || player->grid[row][j] == '#')) {
+        if (player->grid[row][j] == '#') {
+            return 0;
+        }
+        j++;
+    }
+
+    player->shipsSunk++;
+    return 1;
+}
+
+
+// Function to process firing at a coordinate
+void processFire(Player *currentPlayer, Player *opponent, char coord[]) {
+    int row, col;
+
+    if (coord[0] < 'A' || coord[0] > 'J' || coord[1] < '1' || coord[1] > '9') {
+        printf("Invalid coordinates! You lose your turn.\n");
+        return;
+    }
+
+    row = coord[1] - '1'; // Convert to zero-based index
+    col = coord[0] - 'A'; // Convert to zero-based index
+
+    if (opponent->grid[row][col] == '#') { 
+        opponent->grid[row][col] = '*'; 
+        currentPlayer->visibleGrid[row][col] = '*'; 
+        printf("Hit at %s!\n", coord);
+
+        // Check if the ship has sunk
+        if (checkIfShipSunk(opponent, row, col)) {
+            printf("You sunk a ship!\n");
+            currentPlayer->artilleryUnlocked = 1; 
+        }
+    } else { 
+        opponent->grid[row][col] = 'o'; 
+        currentPlayer->visibleGrid[row][col] = 'o'; 
+        printf("Miss at %s.\n", coord);
+    }
+
+   
+    if (currentPlayer->shipsSunk >= 3) {
+        currentPlayer->torpedoUnlocked = 1;
+    }
+}
+
+// Function to perform a radar sweep
+void radarSweep(Player *currentPlayer, Player *opponent, char coord[]) {
+   
+    int row, col;
+
+    row = coord[1] - '1';
+    col = coord[0] - 'A';
+
+    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
+        printf("Invalid radar coordinates!\n");
+        return;
+    }
+
+    for (int i = row; i < row + 2 && i < GRID_SIZE; i++) {
+        for (int j = col; j < col + 2 && j < GRID_SIZE; j++) {
+            if (opponent->grid[i][j] == '#') {
+                printf("Radar sweep reveals ship at %c%d!\n", j + 'A', i + 1);
+            } else {
+                printf("Radar sweep shows water at %c%d.\n", j + 'A', i + 1);
+            }
+        }
+    }
+}
+
+// Function to perform smoke screen
+void smokeScreen(Player *currentPlayer, char coord[]) {
+     int row = coord[1] - '1';
+    int col = coord[0] - 'A';
+
+    if (row < 0 || row >= GRID_SIZE - 1 || col < 0 || col >= GRID_SIZE - 1) {
+        printf("Invalid smoke screen coordinates!\n");
+        return;
+    }
+
+ 
+    if (currentPlayer->smokeScreensUsed >= currentPlayer->shipsSunk) {
+        printf("Smoke screen limit reached! You lose your turn.\n");
+        return;
+    }
+
+    // Clear screen for secrecy
+    clearScreen();
+
+
+    for (int i = row; i <= row + 1; i++) {
+        for (int j = col; j <= col + 1; j++) {
+            if (i < GRID_SIZE && j < GRID_SIZE) {
+                currentPlayer->visibleGrid[i][j] = '?'; 
+            }
+        }
+    }
+
+    currentPlayer->smokeScreensUsed++;
+    printf("Smoke screen activated at %c%d!\n", coord[0], row + 1);
+
+}
+
+// Function to perform artillery attack
+void artillery(Player *currentPlayer, Player *opponent, char coord[]) {
+    int row = coord[1] - '1';
+    int col = coord[0] - 'A';
+
+    if (row < 0 || row >= GRID_SIZE - 1 || col < 0 || col >= GRID_SIZE - 1) {
+        printf("Invalid artillery coordinates!\n");
+        return;
+    }
+
+    printf("Firing artillery at %c%d!\n", coord[0], row + 1);
+
+    for (int i = row; i <= row + 1; i++) {
+        for (int j = col; j <= col + 1; j++) {
+            if (i < GRID_SIZE && j < GRID_SIZE) {
+                if (opponent->grid[i][j] == '#') {
+                    opponent->grid[i][j] = '*';         
+                    currentPlayer->visibleGrid[i][j] = '*';
+                    printf("Hit at %c%d!\n", j + 'A', i + 1);
+                } else if (opponent->grid[i][j] == '~') {
+                    opponent->grid[i][j] = 'o';             
+                    currentPlayer->visibleGrid[i][j] = 'o'; 
+                    printf("Miss at %c%d.\n", j + 'A', i + 1);
+                }
+            }
+        }
+    }
+
+    currentPlayer->artilleryUnlocked = 0;
+
+}
+
+// Function to perform torpedo attack
+void torpedo(Player *currentPlayer, Player *opponent, char coord[]) {
+     int row = coord[1] - '1';
+    int col = coord[0] - 'A';
+    int validMove = 0;
+
+    if (coord[0] >= 'A' && coord[0] <= 'J') {
+        
+        printf("Firing torpedo along column %c!\n", coord[0]);
+        for (int i = 0; i < GRID_SIZE; i++) {
+            if (opponent->grid[i][col] == '#') {
+                opponent->grid[i][col] = '*';             
+                currentPlayer->visibleGrid[i][col] = '*';   
+                printf("Hit at %c%d!\n", coord[0], i + 1);
+            } else if (opponent->grid[i][col] == '~') {
+                opponent->grid[i][col] = 'o';               
+                currentPlayer->visibleGrid[i][col] = 'o';   
+                printf("Miss at %c%d.\n", coord[0], i + 1);
+            }
+        }
+        validMove = 1;
+    } else if (coord[1] >= '1' && coord[1] <= '9') {
+      
+        printf("Firing torpedo along row %d!\n", row + 1);
+        for (int j = 0; j < GRID_SIZE; j++) {
+            if (opponent->grid[row][j] == '#') {
+                opponent->grid[row][j] = '*';           
+                currentPlayer->visibleGrid[row][j] = '*';  
+                printf("Hit at %c%d!\n", j + 'A', row + 1);
+            } else if (opponent->grid[row][j] == '~') {
+                opponent->grid[row][j] = 'o';               
+                currentPlayer->visibleGrid[row][j] = 'o';   
+                printf("Miss at %c%d.\n", j + 'A', row + 1);
+            }
+        }
+        validMove = 1;
+    }
+
+    if (!validMove) {
+        printf("Invalid torpedo coordinates! You lose your turn.\n");
+    }
+
+    currentPlayer->torpedoUnlocked = 0; 
+}
+
+// Function to update the visible grid based on the opponent's grid
+void updateVisibleGrid(Player *currentPlayer, Player *opponent) {
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            if (opponent->grid[i][j] == '*' || opponent->grid[i][j] == 'o') {
+                currentPlayer->visibleGrid[i][j] = opponent->grid[i][j]; 
+            }
+        }
+    }
+}
+
+// Function to display end-game message
+void displayEndGameMessage(Player *winner) {
+    printf("All ships sunk! %s wins!\n", winner->name);
+}
