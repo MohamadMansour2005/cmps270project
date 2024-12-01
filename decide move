@@ -1,0 +1,88 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define GRID_SIZE 10
+
+// Function prototypes
+void decideMove(Player *bot, Player *opponent, char coord[]);
+
+void decideMove(Player *bot, Player *opponent, char coord[]) {
+    static int huntMode = 1; // 1 for Hunt mode, 0 for Target mode
+    static int lastHitRow = -1, lastHitCol = -1; // Tracks last hit coordinates in Target mode
+    static int directionsChecked[4] = {0, 0, 0, 0}; // Up, Right, Down, Left directions
+
+    if (huntMode) {
+        // Hunt Mode: Find new ships using a checkerboard pattern
+        for (int i = 0; i < GRID_SIZE; i++) {
+            for (int j = (i % 2); j < GRID_SIZE; j += 2) { // Checkerboard pattern
+                if (bot->visibleGrid[i][j] == '~') { // Unvisited cell
+                    coord[0] = 'A' + j;
+                    coord[1] = '1' + i;
+                    coord[2] = '\0';
+                    return;
+                }
+            }
+        }
+    } else {
+        // Target Mode: Focus around the last hit
+        int row = lastHitRow;
+        int col = lastHitCol;
+
+        // Try directions (Up, Right, Down, Left) one by one
+        for (int d = 0; d < 4; d++) {
+            if (!directionsChecked[d]) {
+                int newRow = row;
+                int newCol = col;
+
+                switch (d) {
+                    case 0: newRow--; break; // Up
+                    case 1: newCol++; break; // Right
+                    case 2: newRow++; break; // Down
+                    case 3: newCol--; break; // Left
+                }
+
+                if (newRow >= 0 && newRow < GRID_SIZE && newCol >= 0 && newCol < GRID_SIZE &&
+                    bot->visibleGrid[newRow][newCol] == '~') { // Valid and unvisited
+                    coord[0] = 'A' + newCol;
+                    coord[1] = '1' + newRow;
+                    coord[2] = '\0';
+                    directionsChecked[d] = 1; // Mark this direction as checked
+                    return;
+                } else {
+                    directionsChecked[d] = 1; // Mark invalid directions as checked
+                }
+            }
+        }
+
+        // Reset to Hunt Mode if all directions checked and no additional hits
+        huntMode = 1;
+        for (int i = 0; i < 4; i++) directionsChecked[i] = 0; // Reset direction checks
+    }
+}
+
+// Function to update bot's mode and state based on the last result
+void updateBotState(Player *bot, int row, int col, int isHit) {
+    static int lastHitRow = -1, lastHitCol = -1; // Tracks last hit coordinates
+    static int huntMode = 1; // 1 for Hunt mode, 0 for Target mode
+
+    if (isHit) {
+        huntMode = 0; // Switch to Target mode
+        lastHitRow = row;
+        lastHitCol = col;
+    } else if (huntMode == 0) {
+        // Stay in Target mode until all directions are checked
+        int allChecked = 1;
+        for (int i = 0; i < 4; i++) {
+            if (!directionsChecked[i]) {
+                allChecked = 0;
+                break;
+            }
+        }
+
+        if (allChecked) {
+            huntMode = 1; // Return to Hunt mode if no more valid moves in Target mode
+            for (int i = 0; i < 4; i++) directionsChecked[i] = 0;
+        }
+    }
+}
