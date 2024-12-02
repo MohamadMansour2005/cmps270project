@@ -1,3 +1,34 @@
 bot->lastHitRow = -1;
 bot->lastHitCol = -1;
 bot->currentDirection = -1;
+//modify processfire
+void processFire(Player *bot, Player *opponent, char *coord) {
+    int row = coord[1] - '1'; // Convert to 0-based row index
+    int col = coord[0] - 'A'; // Convert to 0-based column index
+
+    // Assume fireAtCell returns true if it hits a ship
+    bool hit = fireAtCell(opponent, row, col);
+    
+    if (hit) {
+        printf("Bot hits a ship at %s!\n", coord);
+        bot->visibleGrid[row][col] = 'X'; // Mark the hit on the bot's grid
+        bot->lastHitRow = row;           // Update last hit coordinates
+        bot->lastHitCol = col;
+        
+        // Check if the ship is sunk
+        if (isShipSunk(opponent, row, col)) {
+            printf("Bot sunk a ship!\n");
+            bot->lastHitRow = -1;        // Reset targeting for a new ship
+            bot->lastHitCol = -1;
+            bot->currentDirection = -1;
+        }
+    } else {
+        printf("Bot missed at %s.\n", coord);
+        bot->visibleGrid[row][col] = 'O'; // Mark the miss on the bot's grid
+
+        // If targeting in a specific direction, reverse or reset
+        if (bot->currentDirection != -1) {
+            bot->currentDirection = -1; // Reset direction to explore other options
+        }
+    }
+}
