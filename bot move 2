@@ -1,0 +1,103 @@
+void botMakeMove(Player *bot, Player *opponent) {
+    char coord[4]; // To store coordinates
+    int row, col;
+    int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // Directions for adjacent cells
+
+    // Helper function to check if a cell is valid for targeting
+    int isValidCell(int r, int c) {
+        return r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE && bot->visibleGrid[r][c] == '~';
+    }
+
+    // Step 1: Focused attack if there's a known hit
+    if (bot->lastHitRow != -1 && bot->lastHitCol != -1) {
+        printf("Bot has a previous hit. Looking for adjacent cells...\n");
+        for (int i = 0; i < 4; i++) {
+            int newRow = bot->lastHitRow + directions[i][0];
+            int newCol = bot->lastHitCol + directions[i][1];
+            if (isValidCell(newRow, newCol)) {
+                sprintf(coord, "%c%d", newCol + 'A', newRow + 1);
+                printf("Bot targets near a previous hit: %s\n", coord);
+                processFire(bot, opponent, coord);
+                return;
+            }
+        }
+    }
+
+    // Step 2: Use special abilities if available
+    if (bot->torpedoUnlocked) {
+        printf("Bot uses Torpedo attack!\n");
+        for (row = 0; row < GRID_SIZE; row++) {
+            int rowClear = 1;
+            for (col = 0; col < GRID_SIZE; col++) {
+                if (bot->visibleGrid[row][col] != '~') { // Skip rows that have been attacked
+                    rowClear = 0;
+                    break;
+                }
+            }
+            if (rowClear) {
+                sprintf(coord, "R%d", row + 1); // Example: R3 for row 3
+                torpedo(bot, opponent, coord);
+                return;
+            }
+        }
+    }
+
+    if (bot->artilleryUnlocked) {
+        printf("Bot uses Artillery attack!\n");
+        if (bot->lastHitRow != -1 && bot->lastHitCol != -1) {
+            int targetRow = bot->lastHitRow > 0 ? bot->lastHitRow - 1 : bot->lastHitRow;
+            int targetCol = bot->lastHitCol > 0 ? bot->lastHitCol - 1 : bot->lastHitCol;
+            sprintf(coord, "%c%d", targetCol + 'A', targetRow + 1); // Center artillery on last hit
+            artillery(bot, opponent, coord);
+            return;
+        }
+    }
+
+    if (bot->radarSweepsUsed < MAX_RADAR_SWEEPS) {
+        printf("Bot uses Radar Sweep!\n");
+        row = rand() % (GRID_SIZE - 1);
+        col = rand() % (GRID_SIZE - 1);
+        sprintf(coord, "%c%d", col + 'A', row + 1);
+        radarSweep(bot, opponent, coord);
+        bot->radarSweepsUsed++;
+        return;
+    }
+
+    if (bot->smokeScreensUsed < bot->shipsSunk) {
+        printf("Bot uses Smoke Screen!\n");
+        row = rand() % (GRID_SIZE - 1);
+        col = rand() % (GRID_SIZE - 1);
+        sprintf(coord, "%c%d", col + 'A', row + 1);
+        smokeScreen(bot, coord);
+        bot->smokeScreensUsed++;
+        return;
+    }
+
+    // Step 3: Systematic exploration using a checkerboard pattern
+    printf("Bot is scanning using a systematic strategy...\n");
+    for (row = 0; row < GRID_SIZE; row++) {
+        for (col = (row % 2); col < GRID_SIZE; col += 2) {
+            if (isValidCell(row, col)) {
+                sprintf(coord, "%c%d", col + 'A', row + 1);
+                printf("Bot targets cell using checkerboard strategy: %s\n", coord);
+                processFire(bot, opponent, coord);
+                return;
+            }
+        }
+    }
+
+    // Step 4: Fallback random targeting for unexplored cells
+    printf("Bot is using fallback random targeting...\n");
+    for (row = 0; row < GRID_SIZE; row++) {
+        for (col = 0; col < GRID_SIZE; col++) {
+            if (isValidCell(row, col)) {
+                sprintf(coord, "%c%d", col + 'A', row + 1);
+                processFire(bot, opponent, coord);
+                return;
+            }
+        }
+    }
+
+    // Step 5: If no valid moves are found (game should not reach here)
+    printf("Bot has no valid moves left!\n");
+}
