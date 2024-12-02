@@ -1,0 +1,136 @@
+void botMakeMove(Player *bot, Player *opponent) {
+    char coord[4];
+    int row, col;
+
+    // Check for visible targets first (identified after a radar sweep)
+    for (row = 0; row < GRID_SIZE; row++) {
+        for (col = 0; col < GRID_SIZE; col++) {
+            if (bot->visibleGrid[row][col] == '#') { // Target detected by radar
+                sprintf(coord, "%c%d", col + 'A', row + 1);
+                printf("Bot targets visible ship at %s!\n", coord);
+                processFire(bot, opponent, coord); // Fire at the detected target
+                return; // Stop further processing once a valid target is fired at
+            }
+        }
+    }
+
+    // Prioritize Torpedo attack if unlocked
+    if (bot->torpedoUnlocked) {
+        printf("Bot uses Torpedo attack!\n");
+
+        // Look for an unhit row or column
+        int targetFound = 0;
+
+        // First try rows
+        for (row = 0; row < GRID_SIZE && !targetFound; row++) {
+            int rowHit = 0;
+            for (col = 0; col < GRID_SIZE; col++) {
+                if (bot->visibleGrid[row][col] != '~') { // Check for previously attacked cells
+                    rowHit = 1;
+                    break;
+                }
+            }
+            if (!rowHit) {
+                sprintf(coord, "R%d", row + 1); // Example: R1 for row 1
+                targetFound = 1;
+            }
+        }
+
+        // If no row is found, try columns
+        if (!targetFound) {
+            for (col = 0; col < GRID_SIZE && !targetFound; col++) {
+                int colHit = 0;
+                for (row = 0; row < GRID_SIZE; row++) {
+                    if (bot->visibleGrid[row][col] != '~') { // Check for previously attacked cells
+                        colHit = 1;
+                        break;
+                    }
+                }
+                if (!colHit) {
+                    sprintf(coord, "%c", col + 'A'); // Example: A for column A
+                    targetFound = 1;
+                }
+            }
+        }
+
+        if (targetFound) {
+            torpedo(bot, opponent, coord);
+        } else {
+            printf("No viable row or column for Torpedo attack!\n");
+        }
+        return;
+    }
+
+    // Prioritize Artillery attack if unlocked
+    if (bot->artilleryUnlocked) {
+        printf("Bot uses Artillery attack!\n");
+
+        // Use the last hit to determine the target area
+        if (bot->lastHitRow != -1 && bot->lastHitCol != -1) {
+            row = bot->lastHitRow > 0 ? bot->lastHitRow - 1 : bot->lastHitRow;
+            col = bot->lastHitCol > 0 ? bot->lastHitCol - 1 : bot->lastHitCol;
+
+            // Ensure the 2x2 area stays within bounds
+            row = (row + 1 < GRID_SIZE) ? row : GRID_SIZE - 2;
+            col = (col + 1 < GRID_SIZE) ? col : GRID_SIZE - 2;
+
+            sprintf(coord, "%c%d", col + 'A', row + 1); // Example: B3 for row 3, col B
+            artillery(bot, opponent, coord);
+            return;
+        }
+    }
+
+    // Prioritize Radar Sweep only if no target has been found yet
+    if (bot->radarSweepsUsed < MAX_RADAR_SWEEPS) {
+        printf("Bot uses Radar Sweep!\n");
+
+        // Select a random top-left corner for 2x2 radar sweep
+        row = rand() % (GRID_SIZE - 1);
+        col = rand() % (GRID_SIZE - 1);
+        sprintf(coord, "%c%d", col + 'A', row + 1); // Example: C4 for row 4, col C
+        radarSweep(bot, opponent, coord);
+        bot->radarSweepsUsed++;
+        return;
+    }
+
+    // Prioritize Smoke Screen if there are fewer smoke screens than ships sunk
+    if (bot->smokeScreensUsed < bot->shipsSunk) {
+        printf("Bot uses Smoke Screen!\n");
+
+        // Select a random top-left corner for 2x2 smoke screen
+        row = rand() % (GRID_SIZE - 1);
+        col = rand() % (GRID_SIZE - 1);
+        sprintf(coord, "%c%d", col + 'A', row + 1); // Example: D5 for row 5, col D
+        smokeScreen(bot, coord);
+        bot->smokeScreensUsed++;
+        return;
+    }
+
+    // If no special attacks are available, proceed with normal fire
+    printf("Bot uses normal Fire attack!\n");
+
+    // Target intelligently if last hit is known
+    if (bot->lastHitRow != -1 && bot->lastHitCol != -1) {
+        int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int i = 0; i < 4; i++) {
+            int newRow = bot->lastHitRow + directions[i][0];
+            int newCol = bot->lastHitCol + directions[i][1];
+            if (newRow >= 0 && newRow < GRID_SIZE && newCol >= 0 && newCol < GRID_SIZE &&
+                bot->visibleGrid[newRow][newCol] == '~') {
+                row = newRow;
+                col = newCol;
+                sprintf(coord, "%c%d", col + 'A', row + 1);
+                processFire(bot, opponent, coord);
+                return;
+            }
+        }
+    }
+
+    // Fallback to random targeting if no intelligent target found
+    do {
+        row = rand() % GRID_SIZE;
+        col = rand() % GRID_SIZE;
+    } while (bot->visibleGrid[row][col] != '~'); // Avoid redundant targeting
+    sprintf(coord, "%c%d", col + 'A', row + 1);
+    processFire(bot, opponent, coord);
+}
