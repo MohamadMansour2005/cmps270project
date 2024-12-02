@@ -1,0 +1,3 @@
+bot->lastHitRow = -1;
+bot->lastHitCol = -1;
+bot->currentDirection = -1;
