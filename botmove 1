@@ -1,0 +1,76 @@
+void botMakeMove(Player *bot, Player *opponent) {
+    char coord[4];
+    int row, col;
+
+    // Target intelligently based on the last hit
+    if (bot->lastHitRow != -1 && bot->lastHitCol != -1) {
+        int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int i = 0; i < 4; i++) {
+            int newRow = bot->lastHitRow + directions[i][0];
+            int newCol = bot->lastHitCol + directions[i][1];
+            if (newRow >= 0 && newRow < GRID_SIZE && newCol >= 0 && newCol < GRID_SIZE &&
+                bot->visibleGrid[newRow][newCol] == '~') {
+                sprintf(coord, "%c%d", newCol + 'A', newRow + 1);
+                printf("Bot targets near a previous hit: %s\n", coord);
+                processFire(bot, opponent, coord);
+                return;
+            }
+        }
+    }
+
+    // Chessboard pattern for systematic targeting
+    for (row = 0; row < GRID_SIZE; row++) {
+        for (col = (row % 2); col < GRID_SIZE; col += 2) { // Alternating pattern
+            if (bot->visibleGrid[row][col] == '~') {
+                sprintf(coord, "%c%d", col + 'A', row + 1);
+                printf("Bot uses chessboard strategy: %s\n", coord);
+                processFire(bot, opponent, coord);
+                return;
+            }
+        }
+    }
+
+    // Prioritize special abilities if available
+    if (bot->torpedoUnlocked) {
+        printf("Bot uses Torpedo attack!\n");
+        // Implement Torpedo logic as above
+        // ...
+        return;
+    }
+
+    if (bot->artilleryUnlocked) {
+        printf("Bot uses Artillery attack!\n");
+        // Implement Artillery logic as above
+        // ...
+        return;
+    }
+
+    if (bot->radarSweepsUsed < MAX_RADAR_SWEEPS) {
+        printf("Bot uses Radar Sweep!\n");
+        row = rand() % (GRID_SIZE - 1);
+        col = rand() % (GRID_SIZE - 1);
+        sprintf(coord, "%c%d", col + 'A', row + 1);
+        radarSweep(bot, opponent, coord);
+        bot->radarSweepsUsed++;
+        return;
+    }
+
+    if (bot->smokeScreensUsed < bot->shipsSunk) {
+        printf("Bot uses Smoke Screen!\n");
+        row = rand() % (GRID_SIZE - 1);
+        col = rand() % (GRID_SIZE - 1);
+        sprintf(coord, "%c%d", col + 'A', row + 1);
+        smokeScreen(bot, coord);
+        bot->smokeScreensUsed++;
+        return;
+    }
+
+    // Fallback: Random targeting if no other options
+    do {
+        row = rand() % GRID_SIZE;
+        col = rand() % GRID_SIZE;
+    } while (bot->visibleGrid[row][col] != '~');
+    sprintf(coord, "%c%d", col + 'A', row + 1);
+    printf("Bot uses fallback random targeting: %s\n", coord);
+    processFire(bot, opponent, coord);
+}
